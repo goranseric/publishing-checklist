@@ -4,16 +4,23 @@
 	<div class="publishing-checklist-items-complete">
 		<?php echo esc_html( sprintf( __( '%d of %d tasks complete', 'publishing-checklist' ), count( $completed_tasks ), count( $tasks ) ) ); ?>
 		<progress value="<?php echo (int) count( $completed_tasks ); ?>" max="<?php echo (int) count( $tasks ); ?>"></progress>
+		<?php if ( $incomplete_required ) {
+			echo '<strong>' . esc_html(
+				sprintf( __( '(%d %s incomplete)', 'publishing-checklist' ),
+				count( $incomplete_required ),
+				_n( 'required task', 'required tasks', count( $incomplete_required ), 'publishing-checklist' )
+			) ) . '</strong>';
+		} ?>
 	</div>
 
-	<?php if ( $incomplete_required ) { ?>
-	<p>
-		<strong><?php esc_html_e( 'Not ready for publication.', 'publishing-checklist' ); ?></strong>
-		<?php echo wp_sprintf( esc_html__( 'Incomplete required tasks: %l.', 'publishing-checklist' ), wp_list_pluck( $incomplete_required, 'label' ) ); ?>
-	</p>
-	<p class="description">
-		<?php esc_html_e( 'Please correct these issues and submit for review before publishing.', 'publishing-checklist' ); ?>
-	</p>
+	<?php if ( $incomplete_required && 'publish' !== $current_status ) { ?>
+		<p>
+			<strong><?php esc_html_e( 'Not ready for publication.', 'publishing-checklist' ); ?></strong>
+			<?php echo wp_sprintf( esc_html__( 'Incomplete required tasks: %l.', 'publishing-checklist' ), wp_list_pluck( $incomplete_required, 'label' ) ); ?>
+		</p>
+		<p class="description">
+			<?php esc_html_e( 'Please correct these issues and submit for review before publishing.', 'publishing-checklist' ); ?>
+		</p>
 	<?php } ?>
 
 	<a href="javascript:void(0);" class="publishing-checklist-show-list"><?php esc_html_e( 'Show List', 'publishing-checklist' ); ?></a>

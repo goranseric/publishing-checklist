@@ -61,25 +61,23 @@ class Publishing_Checklist {
 	/**
 	 * Users should not be able to publish posts missing required tasks.
 	 *
+	 * Exceptions are superadmins, who can do anything, and users with the
+	 * capability `publishing_checklist_publish_incomplete_posts`.
 	 */
 	public function filter_map_meta_cap( $all_caps, $cap ) {
 		global $post;
-
 		if ( ! $post ) {
 			return $all_caps;
 		}
-
 		$post_type_object = get_post_type_object( $post->post_type );
 		$publish_cap = $post_type_object->cap->publish_posts;
 
 		if ( $publish_cap === $cap ) {
-			$required_tasks = $this->evaluate_checklist( $post->ID, true );
-
-			if ( count( $required_tasks['completed'] ) !== count( $required_tasks['tasks'] ) ) {
+			$required_tasks = $this->evaluate_checklist( $post->ID );
+			if ( $required_tasks['incomplete_required'] ) {
 				$all_caps[ $publish_cap ] = current_user_can( 'publishing_checklist_publish_incomplete_posts' );
 			}
 		}
-
 		return $all_caps;
 	}
 
@@ -87,9 +85,13 @@ class Publishing_Checklist {
 	 * Register a validation task for our publishing checklist
 	 *
 	 * @param string $id Unique identifier for the task (can be arbitrary, as long as it doesn't conflict with others)
-	 * @param string $label Human-friendly label for the task
-	 * @param mixed $callback Callable function or method to indicate whether or not the task has been complete
-	 * @param string $explanation A longer description as to what needs to be accomplished for the task
+	 * @param array $args Arguments defining this task: {
+	 *   @var string $label Human-friendly label for the task
+	 *   @var mixed $callback Callable function or method to indicate whether or not the task has been complete
+	 *   @var string $explanation A longer description as to what needs to be accomplished for the task
+	 *   @var array $post_type Post types to apply this checklist item to
+	 *   @var bool $required If true, will block posts from publication if this task is not complete
+	 * }
 	 */
 	public function register_task( $id, $args = array() ) {
 
@@ -112,16 +114,14 @@ class Publishing_Checklist {
 		$post_id = get_the_ID();
 		$tasks_completed = $this->evaluate_checklist( $post_id );
 
-		$required_tasks = $this->evaluate_checklist( $post_id, true );
-		$incomplete_required_tasks = array_diff_key( $required_tasks['tasks'], array_flip( $required_tasks['completed'] ) );
-
 		if ( $tasks_completed ) {
 			do_action( 'publishing_checklist_enqueue_scripts' );
 			echo $this->get_template_part( 'post-submitbox-misc-actions',
 				array(
 					'tasks' => $tasks_completed['tasks'],
 					'completed_tasks' => $tasks_completed['completed'],
-					'incomplete_required' => $incomplete_required_tasks,
+					'incomplete_required' => $tasks_completed['incomplete_required'],
+					'current_status' => get_post_status( $post_id ),
 				)
 			);
 		}
@@ -131,9 +131,8 @@ class Publishing_Checklist {
 	* Evaluate tasks for a post
 	*
 	* @param string $post_id WordPress post ID
-	* @param bool $required_only If true, will only evaluate required tasks
 	*/
-	public function evaluate_checklist( $post_id, $required_only = false ) {
+	public function evaluate_checklist( $post_id ) {
 
 		if ( empty( $post_id ) ) {
 			return false;
@@ -146,14 +145,11 @@ class Publishing_Checklist {
 		$post_type = get_post_type( $post_id );
 
 		$tasks = array_filter( $this->tasks,
-			function( $task ) use ( $post_type, $required_only ) {
+			function( $task ) use ( $post_type ) {
 				if ( ! is_callable( $task['callback'] ) ) {
 					return false;
 				}
 				if ( ! empty( $task['post_type'] ) && ! in_array( $post_type, $task['post_type'], true ) ) {
-					return false;
-				}
-				if ( $required_only && ! $task['required'] ) {
 					return false;
 				}
 				return true;
@@ -169,10 +165,13 @@ class Publishing_Checklist {
 		});
 
 		$completed_tasks = array();
+		$incomplete_required_tasks = array();
 
 		foreach ( $tasks as $task_id => $task ) {
 			if ( call_user_func_array( $task['callback'], array( $post_id, $task_id ) ) ) {
 				$completed_tasks[] = $task_id;
+			} elseif ( $task['required'] ) {
+				$incomplete_required_tasks[] = $task;
 			}
 		}
 
@@ -183,10 +182,10 @@ class Publishing_Checklist {
 		$checklist_data = array(
 			'tasks' => $tasks,
 			'completed' => $completed_tasks,
+			'incomplete_required' => $incomplete_required_tasks
 		);
 
 		return $checklist_data;
-
 	}
 
 	/**
@@ -254,6 +253,7 @@ class Publishing_Checklist {
 			echo $this->get_template_part( 'column-checklist', array(
 				'tasks' => $tasks_completed['tasks'],
 				'completed_tasks' => $tasks_completed['completed'],
+				'incomplete_required' => $tasks_completed['incomplete_required'],
 			) );
 		}
 	}
