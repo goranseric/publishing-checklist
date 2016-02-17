@@ -124,10 +124,7 @@ class Publishing_Checklist {
 		$post->post_status = $old_status;
 		wp_update_post( $post );
 
-		$redirect_url = add_query_arg(
-			array( 'checklist' => 'fail' ),
-			get_edit_post_link( $post->ID, 'raw' ) );
-
+		$redirect_url = add_query_arg( array( 'checklist' => 'fail' ), get_edit_post_link( $post->ID, 'raw' ) );
 		wp_safe_redirect( $redirect_url );
 		exit;
 	}
@@ -151,7 +148,7 @@ class Publishing_Checklist {
 		}
 
 		foreach ( $tasks_completed['tasks'] as $task_id => $task ) {
-			if ( ! in_array( $task_id, $tasks_completed['completed'] ) ) {
+			if ( ! in_array( $task_id, $tasks_completed['completed'], true ) ) {
 				printf( '<div class="%1$s"><p><strong>%2$s:</strong> %3$s</p></div>',
 					'error',
 					esc_html__( 'Unable to publish', 'publishing-checklist' ),
@@ -165,7 +162,7 @@ class Publishing_Checklist {
 	* Evaluate tasks for a post
 	*
 	* @param string $post_id WordPress post ID
-	* @param book $required_only If true, will only evaluate required tasks
+	* @param bool $required_only If true, will only evaluate required tasks
 	*/
 	public function evaluate_checklist( $post_id, $required_only = false ) {
 
