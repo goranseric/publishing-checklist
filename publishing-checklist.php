@@ -182,7 +182,7 @@ class Publishing_Checklist {
 		$checklist_data = array(
 			'tasks' => $tasks,
 			'completed' => $completed_tasks,
-			'incomplete_required' => $incomplete_required_tasks
+			'incomplete_required' => $incomplete_required_tasks,
 		);
 
 		return $checklist_data;

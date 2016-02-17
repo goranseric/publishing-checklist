@@ -4,13 +4,16 @@
 	<div class="publishing-checklist-items-complete">
 		<?php echo esc_html( sprintf( __( '%d of %d tasks complete', 'publishing-checklist' ), count( $completed_tasks ), count( $tasks ) ) ); ?>
 		<progress value="<?php echo (int) count( $completed_tasks ); ?>" max="<?php echo (int) count( $tasks ); ?>"></progress>
-		<?php if ( $incomplete_required ) {
+		<?php
+		if ( $incomplete_required ) {
 			echo '<strong>' . esc_html(
 				sprintf( __( '(%d %s incomplete)', 'publishing-checklist' ),
-				count( $incomplete_required ),
-				_n( 'required task', 'required tasks', count( $incomplete_required ), 'publishing-checklist' )
-			) ) . '</strong>';
-		} ?>
+					count( $incomplete_required ),
+					_n( 'required task', 'required tasks', count( $incomplete_required ), 'publishing-checklist' )
+				)
+			) . '</strong>';
+		}
+		?>
 	</div>
 
 	<?php if ( $incomplete_required && 'publish' !== $current_status ) { ?>
