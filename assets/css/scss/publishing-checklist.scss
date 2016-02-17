@@ -14,6 +14,9 @@
 	}
 	li {
 		cursor: help;
+		&.required {
+			font-weight: bold;
+		}
 	}
 }
 .column-publishing_checklist {
