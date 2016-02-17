@@ -35,11 +35,10 @@ class Publishing_Checklist {
 	 * Set up actions for the plugin
 	 */
 	private function setup_actions() {
+		add_filter( 'user_has_cap', array( $this, 'filter_user_has_cap' ), 10, 4 );
 
 		add_action( 'publishing_checklist_enqueue_scripts', array( $this, 'action_publishing_checklist_enqueue_scripts' ) );
 		add_action( 'post_submitbox_misc_actions', array( $this, 'action_post_submitbox_misc_actions_render_checklist' ) );
-		add_action( 'transition_post_status', array( $this, 'action_transition_post_status' ), 1, 3 );
-		add_action( 'admin_notices', array( $this, 'action_admin_notices' ) );
 
 		// Must be called before list table is rendered, but after all tasks have been registered.
 		add_action( 'admin_head', function() {
@@ -57,7 +56,32 @@ class Publishing_Checklist {
 			}
 
 		} );
+	}
 
+	/**
+	 * Users should not be able to publish posts missing required tasks.
+	 *
+	 *
+	 */
+	public function filter_user_has_cap( $all_caps, $caps, $args, $user ) {
+		global $post;
+
+		if ( ! $post ) {
+			return $all_caps;
+		}
+
+		$post_type_object = get_post_type_object( $post->post_type );
+		$publish_cap = $post_type_object->cap->publish_posts;
+
+		if ( in_array( $publish_cap, $caps ) ) {
+			$required_tasks = $this->evaluate_checklist( $post->ID, true );
+
+			if ( count( $required_tasks['completed'] ) !== count( $required_tasks['tasks'] ) ) {
+				$all_caps[ $publish_cap ] = current_user_can( 'publishing_checklist_publish_incomplete_posts' );
+			}
+		}
+
+		return $all_caps;
 	}
 
 	/**
@@ -88,73 +112,19 @@ class Publishing_Checklist {
 	public function action_post_submitbox_misc_actions_render_checklist() {
 		$post_id = get_the_ID();
 		$tasks_completed = $this->evaluate_checklist( $post_id );
+
+		$required_tasks = $this->evaluate_checklist( $post_id, true );
+		$incomplete_required_tasks = array_diff_key( $required_tasks['tasks'], array_flip( $required_tasks['completed'] ) );
+
 		if ( $tasks_completed ) {
 			do_action( 'publishing_checklist_enqueue_scripts' );
 			echo $this->get_template_part( 'post-submitbox-misc-actions',
 				array(
 					'tasks' => $tasks_completed['tasks'],
 					'completed_tasks' => $tasks_completed['completed'],
+					'incomplete_required' => $incomplete_required_tasks,
 				)
 			);
-		}
-	}
-
-	/**
-	 * On publishing a post, make sure that it fulfills all required tasks.
-	 *
-	 * If there are one or more tasks with "required" status that are not
-	 * completed, the status transition will not be performed, and a warning
-	 * message alerting the user of the conditions which must be met in order
-	 * to publish will be displayed instead.
-	 *
-	 * @param string $new_status
-	 * @param string $old_status
-	 * @param object $post
-	 */
-	public function action_transition_post_status( $new_status, $old_status, $post ) {
-		if ( 'publish' !== $new_status && 'future' !== $new_status ) {
-			return;
-		}
-
-		$required_tasks = $this->evaluate_checklist( $post->ID, true );
-		if ( count( $required_tasks['completed'] ) === count( $required_tasks['tasks'] ) ) {
-			return;
-		}
-
-		$post->post_status = $old_status;
-		wp_update_post( $post );
-
-		$redirect_url = add_query_arg( array( 'checklist' => 'fail' ), get_edit_post_link( $post->ID, 'raw' ) );
-		wp_safe_redirect( $redirect_url );
-		exit;
-	}
-
-	/**
-	 * Render admin notices, if a failed task is preventing publishing.
-	 *
-	 * If there are one or more tasks with "required" status that are not completed
-	 * on attempting to publish a post, a warning message alerting the user of the
-	 * conditions which must be met in order to publish will be displayed.
-	 *
-	 */
-	public function action_admin_notices() {
-		if ( empty( $_GET['checklist'] ) || 'fail' !== $_GET['checklist'] ) {
-			return;
-		}
-		$post_id = get_the_ID();
-		$tasks_completed = $this->evaluate_checklist( $post_id, true );
-		if ( ! $post_id || ! $tasks_completed ) {
-			return;
-		}
-
-		foreach ( $tasks_completed['tasks'] as $task_id => $task ) {
-			if ( ! in_array( $task_id, $tasks_completed['completed'], true ) ) {
-				printf( '<div class="%1$s"><p><strong>%2$s:</strong> %3$s</p></div>',
-					'error',
-					esc_html__( 'Unable to publish', 'publishing-checklist' ),
-					$task['explanation']
-				);
-			}
 		}
 	}
 
