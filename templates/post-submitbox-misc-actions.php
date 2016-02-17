@@ -9,8 +9,7 @@
 	<?php if ( $incomplete_required ) { ?>
 	<p>
 		<strong><?php esc_html_e( 'Not ready for publication.', 'publishing-checklist' ); ?></strong>
-		<?php echo wp_sprintf( esc_html__( 'Incomplete required tasks: %l.', 'publishing-checklist' ),
-			wp_list_pluck( $incomplete_required, 'label' ) ); ?>
+		<?php echo wp_sprintf( esc_html__( 'Incomplete required tasks: %l.', 'publishing-checklist' ), wp_list_pluck( $incomplete_required, 'label' ) ); ?>
 	</p>
 	<p class="description">
 		<?php esc_html_e( 'Please correct these issues and submit for review before publishing.', 'publishing-checklist' ); ?>
