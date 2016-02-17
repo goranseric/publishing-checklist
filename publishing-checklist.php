@@ -35,7 +35,7 @@ class Publishing_Checklist {
 	 * Set up actions for the plugin
 	 */
 	private function setup_actions() {
-		add_filter( 'user_has_cap', array( $this, 'filter_user_has_cap' ), 10, 4 );
+		add_filter( 'map_meta_cap', array( $this, 'filter_map_meta_cap' ), 10, 2 );
 
 		add_action( 'publishing_checklist_enqueue_scripts', array( $this, 'action_publishing_checklist_enqueue_scripts' ) );
 		add_action( 'post_submitbox_misc_actions', array( $this, 'action_post_submitbox_misc_actions_render_checklist' ) );
@@ -61,9 +61,8 @@ class Publishing_Checklist {
 	/**
 	 * Users should not be able to publish posts missing required tasks.
 	 *
-	 *
 	 */
-	public function filter_user_has_cap( $all_caps, $caps, $args, $user ) {
+	public function filter_map_meta_cap( $all_caps, $cap ) {
 		global $post;
 
 		if ( ! $post ) {
@@ -73,7 +72,7 @@ class Publishing_Checklist {
 		$post_type_object = get_post_type_object( $post->post_type );
 		$publish_cap = $post_type_object->cap->publish_posts;
 
-		if ( in_array( $publish_cap, $caps ) ) {
+		if ( $publish_cap === $cap ) {
 			$required_tasks = $this->evaluate_checklist( $post->ID, true );
 
 			if ( count( $required_tasks['completed'] ) !== count( $required_tasks['tasks'] ) ) {
