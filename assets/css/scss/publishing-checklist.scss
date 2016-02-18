@@ -12,12 +12,6 @@
 	progress {
 		display: block;
 	}
-	li {
-		cursor: help;
-		&.required {
-			font-weight: bold;
-		}
-	}
 }
 .column-publishing_checklist {
 	@media screen and (max-width: 782px) {
@@ -37,5 +31,13 @@
 	}
 	a.publishing-checklist-show-list.row-actions {
 		color: #0073aa !important;
+	}
+}
+.publishing-checklist-items {
+	li {
+		cursor: help;
+		&.required {
+			font-weight: bold;
+		}
 	}
 }

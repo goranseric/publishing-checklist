@@ -20,9 +20,9 @@
 		<p>
 			<strong><?php esc_html_e( 'Not ready for publication.', 'publishing-checklist' ); ?></strong>
 			<?php echo esc_html( wp_sprintf( __( 'Incomplete %s: %l.', 'publishing-checklist' ),
-				_n( 'required task', 'required tasks', count( $incomplete_required ), 'publishing-checklist' )
+				_n( 'required task', 'required tasks', count( $incomplete_required ), 'publishing-checklist' ),
 				wp_list_pluck( $incomplete_required, 'label' )
-			); ?>
+			) ); ?>
 		</p>
 		<p class="description">
 			<?php esc_html_e( 'Please correct these issues and submit for review before publishing.', 'publishing-checklist' ); ?>
